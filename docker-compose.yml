@@ -1,0 +1,56 @@
+# Docker Compose for Shadow Ops
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: shadow_ops_db
+    environment:
+      POSTGRES_DB: shadow_ops
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secretpassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    container_name: shadow_ops_api
+    command: uvicorn src.bridges.api:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    environment:
+      - ENV=development
+      - LOG_LEVEL=INFO
+      - GROQ_API_KEY=gsk_valid_test_api_key
+      - NOTION_TOKEN=secret_valid_test_notion_token
+      - NOTION_DATABASE_ID=valid_database_uuid
+      - DATABASE_URL=postgresql://postgres:secretpassword@postgres:5432/shadow_ops
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  dashboard:
+    build: .
+    container_name: shadow_ops_dashboard
+    command: streamlit run src/ops/dashboard.py --server.port 8501 --server.address 0.0.0.0
+    ports:
+      - "8501:8501"
+    environment:
+      - ENV=development
+      - LOG_LEVEL=INFO
+      - GROQ_API_KEY=gsk_valid_test_api_key
+      - NOTION_TOKEN=secret_valid_test_notion_token
+      - NOTION_DATABASE_ID=valid_database_uuid
+      - DATABASE_URL=postgresql://postgres:secretpassword@postgres:5432/shadow_ops
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:

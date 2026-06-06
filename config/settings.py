@@ -79,6 +79,12 @@ class Settings(BaseSettings):
     NOTION_TOKEN: SecretStr
     NOTION_DATABASE_ID: str
     
+    # Database and Integration configuration
+    DATABASE_URL: str = "sqlite:///./shadow_ops.db"
+    NEO4J_URI: str = "bolt://localhost:7687"
+    NEO4J_USER: str = "neo4j"
+    NEO4J_PASSWORD: str = "password"
+    
     # Platform tuning parameters
     MAX_CONCURRENT_PROBES: int = 10
     TIMEOUT_SECONDS: int = 30
