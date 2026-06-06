@@ -1,3 +1,4 @@
+# Updated docker-compose.yml – added Qdrant and memory_worker services
 # Docker Compose for Shadow Ops
 
 services:
@@ -52,5 +53,37 @@ services:
       postgres:
         condition: service_healthy
 
+  # New Qdrant vector database for semantic memory
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: shadow_ops_qdrant
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Background worker that runs the memory LangGraph workflow
+  memory_worker:
+    build: .
+    container_name: shadow_ops_memory_worker
+    command: python -m src.memory.workflow
+    environment:
+      - ENV=development
+      - LOG_LEVEL=INFO
+      - DATABASE_URL=postgresql://postgres:secretpassword@postgres:5432/shadow_ops
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+
 volumes:
   pgdata:
+  qdrant_data:
